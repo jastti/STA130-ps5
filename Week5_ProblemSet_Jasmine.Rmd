@@ -1,0 +1,164 @@
+---
+title: "STA130H1F -- Winter 2021"
+author: "Jasmine Tian"
+subtitle: Week 5 Problem Set
+output:
+  pdf_document: default
+---
+
+
+```{r, echo=FALSE, include=FALSE}
+library(tidyverse)
+library(knitr)
+opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+\newpage 
+
+# Part 1
+
+## Question 1 [Required] 
+
+### There have been many questions regarding whether or not usage of social media increases anxiety levels. A study was conducted to examine the relationship between social media usage and student anxiety. The following scores are measures of anxiety levels of students on a Monday. Higher scores indicate higher anxiety; and, if a student used social media more than 1 hour per day then their usage was categorized as "High".
+
+```{r}
+social_media_usage <- c(rep("Low", 30), rep("High", 16));
+anxiety_score <- c(24.64, 39.29, 16.32, 32.83, 28.02, 
+                   33.31, 20.60, 21.13, 26.69, 28.90,
+                   26.43, 24.23, 7.10,  32.86, 21.06,
+                   28.89, 28.71, 31.73, 30.02, 21.96,
+                   25.49, 38.81, 27.85, 30.29, 30.72,
+                   21.43, 22.24, 11.12, 30.86, 19.92,
+                   33.57, 34.09, 27.63, 31.26,
+                   35.91, 26.68, 29.49, 35.32,
+                   26.24, 32.34, 31.34, 33.53,
+                   27.62, 42.91, 30.20, 32.54)
+
+anxiety_data <- tibble(social_media_usage, anxiety_score)
+glimpse(anxiety_data)
+```
+
+
+### (a) Construct boxplots of `anxiety_score` for the two levels of social media usage. Write 2-3 sentences comparing the distributions of anxiety scores across the social media usage groups.
+
+```{r, fig.height=2, fig.width=3.5}
+ggplot(data = anxiety_data, aes(x=social_media_usage, y=anxiety_score)) +
+  geom_boxplot(color="black", fill="gray")+
+  labs(y = "Scores of anxiety", x="Usage of Social Media")
+```
+From the boxplot of `anxiety_score` for the two levels of social media usage, we can observe that the median score of anxiety of high-usage of social media group is higher than the low-usage of social media group. The inter-queartile range(length of box) of high-usage of social media group is smaller than the low-usage of social media group, which means the number of the high-usage group member is less than the low-usage group member.
+
+### (b) Do these data support the claim that the median anxiety level is different for those who use social media in high frequency compared to those who use social media in lower frequency? 
+
+(i) State the hypotheses you are testing (be sure to define any parameters you refer to).
+
+$H_0$: There is no difference in median anxiety level for those who use social media in high frequency compared to those who use social media in lower frequency.
+
+$H_1$: The median anxiety level is different for those who use social media in high frequency compared to those who use social media in lower frequency.
+
+(ii) Look at the code below and write a few sentences explaining what the code inside the for loop is doing and why.
+
+```{r}
+# Note: including the .groups="drop" option in summarise() will suppress a friendly 
+# warning R prints otherwise "`summarise()` ungrouping output (override with 
+#`.groups` argument)".  
+  # Including the .groups="drop" option is optional, but you should include it if you 
+#don't want to see that warning.
+test_stat <- anxiety_data %>% group_by(social_media_usage) %>%
+  summarise(medians = median(anxiety_score), .groups="drop") %>%
+  summarise(value = diff(medians))
+test_stat <- as.numeric(test_stat)
+test_stat
+
+set.seed(523)
+repetitions <- 1000;
+simulated_values <- rep(NA, repetitions)
+
+for(i in 1:repetitions){
+  simdata <- anxiety_data %>% mutate(social_media_usage = sample(social_media_usage))
+
+  sim_value <- simdata %>% group_by(social_media_usage) %>%
+    summarise(medians = median(anxiety_score), .groups="drop") %>%
+    summarise(value = diff(medians))
+  
+  simulated_values[i] <- as.numeric(sim_value)
+}
+
+sim <- tibble(median_diff = simulated_values)
+
+sim %>% ggplot(aes(x=median_diff)) + geom_histogram(binwidth=1, color="black", fill="gray")
+
+# Calculate p-value
+num_more_extreme <- sim %>% filter(abs(median_diff) >= abs(test_stat)) %>% summarise(n())
+
+p_value <- as.numeric(num_more_extreme / repetitions)
+p_value
+```
+From the above code, we get a test statistic based on our observed sample data $\hat{p}_{anxiety}= -4.57$, which can help us decide whether the data is compatible with $H_0$.
+In the for loop, which automatically generates simulations, evaluate a block of code for each value of a sequence for 1000 times. Then turn the results into a data frame(tibble()) so that we can use ggplot. And we can think about "if there is no differences, is our observed value $\hat{p}_{anxiety}= -4.57$ unusual? How unusual?"
+
+(iii) Write a few sentences summarizing your conclusions. Be sure to interpret the p-value carefully and to clearly address the research question.
+
+We have a strong evidence against $H_0$ since there is a small difference: p-value is 0.009, so that we can conclude that the median anxiety level is different for those who use social media in high frequency compared to those who use social media in lower frequency.
+
+\newpage
+
+# Part 2 [Required]
+
+Suppose you were given the following dataset and told it was a survey
+conducted with a random sample of 12 student's in Prof Caetano's 4th year
+class on statistical consultation, communication, and collaboration
+(STA490). They were asked if they were currently living in Toronto
+(defined as Toronto, Etobicoke, Scarborough, York, North York and East
+York) or not and how long it took them to travel to the place they/their
+family usually purchases groceries, using whatever travel method they
+usually used to get there. **Student** is just an ID they were randomly
+assigned when the data was anonymized.
+
+| Student | Location    | Travel time (mins) |
+|---------|-------------|--------------------|
+| 113     | Toronto     | 20                 |
+| 120     | Not Toronto | 17                 |
+| 499     | Not Toronto | 35                 |
+| 703     | Toronto     | 7                  |
+| 190     | Toronto     | 12                 |
+| 286     | Toronto     | 45                 |
+| 203     | Not Toronto | 45                 |
+| 503     | Toronto     | 15                 |
+| 154     | Not Toronto | 50                 |
+| 334     | Toronto     | 25                 |
+| 417     | Not Toronto | 22                 |
+| 303     | Toronto     | 20                 |
+
+In this writing activity you will practice writing instructions and
+demonstrate your understanding of simulation based hypothesis tests.
+
+### Your task
+
+Write instructions so that someone could perform ONE of the following
+hypothesis tests, using only the resources listed below. You do not have
+to use all the materials.
+
+A)  Are 75% of the students taking STA490 this semester living in
+    Toronto?
+B)  Do students who live in Toronto have the same average travel time to
+    their local supermarket as student who don't live in Toronto?
+
+
+The topic I choose for my hypothesis testing is to determine if 75% of the students taking STA490 this semester living in Toronto.\
+
+We will have two hypotheses: null hypothesis $H_0$ and alternative hypothesis $H_1$. \
+
+$H_0$: There is no difference for students taking STA490 this semester living in Toronto or not.
+
+$H_1$: The probability of  students taking STA490 this semester living in Toronto is different students taking STA490 this semester are not living in Toronto.\
+
+Recall that sampling distribution is the distribution of statistic values taken for all possible samples of the same size n from the same population. We want to create a simulated sampling distribution because it describes a range of possible outcomes for a statistic, such as the mean or pattern of a variable, as it does exist in a population.\
+
+To estimate the sampling distribution, we can look at the distribution of 100 students in STA490(if we have that much). Now, instead of surmising based on the random sample of 12 students’ in Prof Caetano's 4th-year class STA490, we can set up a pack of 52 playing cards, half red, half blue. Then let students randomly draw a card, either red or blue, and put it back, so that we can record the proportion of red cards since both the proportion of get a red or blue card is 50/50 process.\
+
+After this step, we can compare our observed value to the distribution of proportions observed from the students(or the pack of half-red, half-blue cards) to access if there are any differences for students taking STA490 this semester living in Toronto or not. In statistical words, we should evaluate the evidence against $H_0$ by calculating the p-value.\
+
+Now we can make a conclusion based on the p-value we got in the last step. Notice that there might occur Type I or Type II errors - a type I error occurs if the investigator rejects the null hypothesis that is actually true in the population; a type II error occurs if the investigator fails to reject the null hypothesis that is actually false in the population.\
+
+
